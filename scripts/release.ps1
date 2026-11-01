@@ -21,7 +21,7 @@ foreach ($file in @('front/dist/index.html', 'php/index.php', 'deploy.htaccess',
 }
 
 $stamp = $now.ToString('HHmmss-fff')
-$base = Join-Path $root "$Date/$stamp"
+$base = Join-Path $root "release/$Date/$stamp"
 $output = $base
 $suffix = 0
 while (Test-Path -LiteralPath $output) {
@@ -29,7 +29,7 @@ while (Test-Path -LiteralPath $output) {
     $output = "$base-$suffix"
 }
 New-Item -ItemType Directory -Path $output | Out-Null
-$release = Join-Path $output 'release'
+$release = $output
 New-Item -ItemType Directory -Path "$release/php", "$release/storage" -Force | Out-Null
 Copy-Item "$root/front/dist/*" $release -Recurse
 Copy-Item "$root/php/index.php" "$release/php/index.php"
@@ -37,6 +37,6 @@ Copy-Item "$root/deploy.htaccess" "$release/.htaccess"
 Set-Content -Encoding ascii "$release/storage/.htaccess" 'Require all denied'
 Copy-Item "$root/DEPLOY.md" "$output/DEPLOY.md"
 Add-Type -AssemblyName System.IO.Compression.FileSystem
-[IO.Compression.ZipFile]::CreateFromDirectory($release, "$output/release.zip")
+[IO.Compression.ZipFile]::CreateFromDirectory($release, "$output.zip")
 Write-Output "Release: $release"
-Write-Output "ZIP: $output/release.zip"
+Write-Output "ZIP: $output.zip"

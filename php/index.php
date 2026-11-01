@@ -8,7 +8,7 @@ session_start(['use_strict_mode'=>1, 'cookie_httponly'=>true, 'cookie_samesite'=
 function respond(array $data, int $status=200): never { http_response_code($status); echo json_encode($data, JSON_UNESCAPED_UNICODE); exit; }
 function fail(string $message, int $status=400): never { respond(['error'=>$message], $status); }
 try {
-    $dir = getenv('BOARD_DATA_DIR') ?: dirname(__DIR__).'/storage';
+    $dir = getenv('BOARD_DATA_DIR') ?: dirname(__DIR__, 2).'/storage';
     if (!is_dir($dir) && !mkdir($dir, 0700, true)) throw new RuntimeException('storage');
     $db = new PDO('sqlite:'.$dir.'/board.sqlite', null, null, [PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION, PDO::ATTR_DEFAULT_FETCH_MODE=>PDO::FETCH_ASSOC]);
     $db->exec('PRAGMA foreign_keys=ON; PRAGMA busy_timeout=5000;');
@@ -70,9 +70,32 @@ try {
         if (!$q->rowCount()) fail('投稿が見つかりません。',404);
         respond(['ok'=>true],201);
     }
+    if ($action==='comment_update' && $method==='POST') {
+        $id=filter_var($input['id'] ?? null,FILTER_VALIDATE_INT,['options'=>['min_range'=>1]]);
+        $body=is_string($input['body'] ?? null) ? trim($input['body']) : '';
+        if (!$id) fail('コメントIDが不正です。');
+        if (mb_strlen($body)<1 || mb_strlen($body)>2000) fail('コメントは1〜2000文字で入力してください。');
+        $q=$db->prepare('UPDATE comments SET body=? WHERE id=? AND user_id=?');
+        $q->execute([$body,$id,$uid]);
+        if (!$q->rowCount()) fail('コメントが見つからないか、編集する権限がありません。',403);
+        respond(['ok'=>true]);
+    }
     if ($action==='comment_delete' && $method==='POST') {
         $q=$db->prepare('DELETE FROM comments WHERE id=? AND user_id=?'); $q->execute([(int)($input['id'] ?? 0),$uid]);
         if (!$q->rowCount()) fail('コメントが見つからないか、削除する権限がありません。',403);
+        respond(['ok'=>true]);
+    }
+    if ($action==='update' && $method==='POST') {
+        $id=filter_var($input['id'] ?? null,FILTER_VALIDATE_INT,['options'=>['min_range'=>1]]);
+        $title=is_string($input['title'] ?? null) ? trim($input['title']) : '';
+        $body=is_string($input['body'] ?? null) ? trim($input['body']) : '';
+        $category=$input['category'] ?? '';
+        if (!$id) fail('投稿IDが不正です。');
+        if (mb_strlen($title)<1 || mb_strlen($title)>100 || mb_strlen($body)<1 || mb_strlen($body)>5000) fail('タイトルは1〜100文字、本文は1〜5000文字で入力してください。');
+        if (!in_array($category,['雑談','質問','お知らせ'],true)) fail('カテゴリを選んでください。');
+        $q=$db->prepare('UPDATE posts SET title=?,body=?,category=? WHERE id=? AND user_id=?');
+        $q->execute([$title,$body,$category,$id,$uid]);
+        if (!$q->rowCount()) fail('投稿が見つからないか、編集する権限がありません。',403);
         respond(['ok'=>true]);
     }
     if ($action==='create' && $method==='POST') {
