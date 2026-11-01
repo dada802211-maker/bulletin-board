@@ -1,3 +1,4 @@
+import LinkedText from './LinkedText'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import hljs from 'highlight.js/lib/core'
 import typescript from 'highlight.js/lib/languages/typescript'
@@ -67,7 +68,7 @@ function CodeBlock({ code, language }: { code: string; language: string }) {
 export default function CodeBody({ text }: { text: string }) {
   return <div className="formatted-body">{splitCodeBlocks(text).map((block, index) => block.kind === 'code'
     ? <CodeBlock key={`${index}:${block.language}:${block.text}`} code={block.text} language={block.language}/>
-    : <p className="post-body" key={index}>{block.text}</p>)}</div>
+    : <p className="post-body" key={index}><LinkedText text={block.text}/></p>)}</div>
 }
 
 export function CodeHint() {
@@ -89,7 +90,7 @@ export function CodeHint() {
         <li>終了行の <code>```</code> を忘れると、コード枠にならず原文のまま表示されます。</li>
         <li>囲み記号や説明文も含め、投稿本文は5,000文字、コメントは2,000文字までです。</li>
       </ul>
-      <p className="code-help-note">コードは表示のみで、実行されません。</p>
+      <p>本文中の https:// または http:// で始まるURLはリンクになり、別タブで開きます。コード枠内のURLはリンクになりません。</p><p className="code-help-note">コードは表示のみで、実行されません。</p>
     </div>
   </details>
 }
