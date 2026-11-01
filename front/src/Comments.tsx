@@ -1,3 +1,5 @@
+import BodyTextarea from './BodyTextarea'
+import CodeBody, { CodeHint } from './CodeBody'
 import { useState } from 'react'
 import type { FormEvent } from 'react'
 
@@ -80,13 +82,13 @@ export default function Comments({ postId, count, userId, api, onLogin, onChange
           <div className="comment-heading"><span className="author"><span className="avatar">{c.name.slice(0, 1)}</span>{c.name}</span><time dateTime={c.created_at}>{new Date(c.created_at).toLocaleString('ja-JP')}</time></div>
           {editingId === c.id && c.user_id === userId ? <form className="comment-form" onSubmit={e => saveEdit(e, c.id)}>
             <label htmlFor={`comment-edit-${c.id}`}>コメントを編集</label>
-            <textarea id={`comment-edit-${c.id}`} autoFocus required rows={3} maxLength={2000} value={editBody} disabled={busy} onChange={e => setEditBody(e.target.value)}/>
-            <div className="comment-actions"><small>{editBody.length} / 2000</small><div>
+            <BodyTextarea id={`comment-edit-${c.id}`} autoFocus required rows={3} maxLength={2000} value={editBody} disabled={busy} onValueChange={setEditBody}/>
+            <CodeHint/><div className="comment-actions"><small>{editBody.length} / 2000</small><div>
               <button type="button" className="plain" disabled={busy} onClick={() => { setEditingId(null); setEditBody(''); setError('') }}>キャンセル</button>
               <button disabled={busy || !editBody.trim()}>{busy ? '保存中…' : '変更を保存'}</button>
             </div></div>
           </form> : <>
-            <p className="post-body">{c.body}</p>
+            <CodeBody text={c.body}/>
             {c.user_id === userId && <div>
               <button className="plain" disabled={busy || editingId !== null} onClick={() => { setEditingId(c.id); setEditBody(c.body); setError('') }}>編集</button>
               <button className="delete" disabled={busy || editingId !== null} onClick={() => remove(c.id)}>コメントを削除</button>
@@ -96,8 +98,8 @@ export default function Comments({ postId, count, userId, api, onLogin, onChange
       </>}
       {editingId === null && (userId ? <form className="comment-form" onSubmit={submit}>
         <label htmlFor={`comment-body-${postId}`}>コメントを書く</label>
-        <textarea id={`comment-body-${postId}`} value={body} onChange={e => setBody(e.target.value)} maxLength={2000} required rows={3} placeholder="相手を思いやる言葉で、会話に参加しましょう。" disabled={busy}/>
-        <div className="comment-actions"><small>{body.length} / 2000</small><button disabled={busy || !body.trim()}>{busy ? '送信中…' : 'コメントを送信'}</button></div>
+        <BodyTextarea id={`comment-body-${postId}`} value={body} onValueChange={setBody} maxLength={2000} required rows={3} placeholder="相手を思いやる言葉で、会話に参加しましょう。" disabled={busy}/>
+        <CodeHint/><div className="comment-actions"><small>{body.length} / 2000</small><button disabled={busy || !body.trim()}>{busy ? '送信中…' : 'コメントを送信'}</button></div>
       </form> : <button className="plain" onClick={onLogin}>ログインしてコメントする →</button>)}
     </div>}
   </section>

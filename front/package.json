@@ -9,9 +9,11 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "build:assets": "tsc -b && vite build",
-    "postbuild": "powershell -NoProfile -ExecutionPolicy Bypass -File ../scripts/release.ps1 -PackageOnly"
+    "postbuild": "powershell -NoProfile -ExecutionPolicy Bypass -File ../scripts/release.ps1 -PackageOnly",
+    "test:editor": "node ../scripts/test-editor.cjs"
   },
   "dependencies": {
+    "highlight.js": "^11.12.0",
     "react": "^19.2.4",
     "react-dom": "^19.2.4"
   },
@@ -25,6 +27,7 @@
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.5.2",
     "globals": "^17.4.0",
+    "jsdom": "^29.1.1",
     "typescript": "~5.9.3",
     "typescript-eslint": "^8.56.1",
     "vite": "^8.0.0"
