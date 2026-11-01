@@ -71,5 +71,25 @@ export default function CodeBody({ text }: { text: string }) {
 }
 
 export function CodeHint() {
-  return <small className="code-hint">コードは行頭の <code>```typescript</code> と、最後の行の <code>```</code> で囲んでください。Tabでタブ文字を挿入、Shift+Tabで前の項目へ移動できます。</small>
+  // 投稿・コメントの作成と編集で同じ説明を表示する。入力中でも折りたたんで参照できる。
+  return <details className="code-help">
+    <summary>コードの入力方法・サンプルを見る</summary>
+    <div className="code-help-content">
+      <p>コードの前後をバッククォート3個（<code>```</code>）で囲みます。開始行には言語名を付け、開始・終了の記号はそれぞれ行頭に書いてください。</p>
+      <h4>TypeScriptの入力例</h4>
+      <pre tabIndex={0} aria-label="TypeScriptの入力例"><code>{'```typescript\nconst message: string = \'こんにちは\';\n\nfunction greet(): void {\n\tconsole.log(message);\n}\n```'}</code></pre>
+      <p><code>ts</code> と書いても構文が色分けされます。コードの前後に通常の説明文を入れたり、複数のコードを載せたりできます。</p>
+      <h4>PHPの入力例</h4>
+      <pre tabIndex={0} aria-label="PHPの入力例"><code>{'```php\n<?php\n$message = \'こんにちは\';\necho $message;\n```'}</code></pre>
+      <p>PHPはコード枠・インデント保持・コピーに対応しています。現在、PHPの構文色分けには対応していません。</p>
+      <ul>
+        <li><kbd>Tab</kbd>：タブ文字を挿入します（表示は4文字幅）。選択中の文字がある場合は、その範囲をタブ1文字に置き換えます。</li>
+        <li><kbd>Shift</kbd>＋<kbd>Tab</kbd>：前の入力項目へ移動します。</li>
+        <li>投稿後はコード枠の「コピー」からコード本文をコピーできます。失敗した場合は、コードを選択して <kbd>Ctrl</kbd>＋<kbd>C</kbd>（Macは <kbd>⌘</kbd>＋<kbd>C</kbd>）でコピーしてください。</li>
+        <li>終了行の <code>```</code> を忘れると、コード枠にならず原文のまま表示されます。</li>
+        <li>囲み記号や説明文も含め、投稿本文は5,000文字、コメントは2,000文字までです。</li>
+      </ul>
+      <p className="code-help-note">コードは表示のみで、実行されません。</p>
+    </div>
+  </details>
 }
