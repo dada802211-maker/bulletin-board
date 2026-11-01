@@ -2,6 +2,7 @@ import { useState } from 'react'
 import type { FormEvent } from 'react'
 
 type Comment = { id: number; user_id: number; name: string; body: string; created_at: string }
+// API呼び出しと認証状態は親から受け取り、投稿ごとにコメント欄を独立させる。
 type Props = {
   postId: number
   count: number
@@ -18,19 +19,23 @@ export default function Comments({ postId, count, userId, api, onLogin, onChange
   const [loading, setLoading] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+  // 編集中の本文は表示用データと分け、キャンセルで保存前の内容を破棄できるようにする。
   const [editingId, setEditingId] = useState<number|null>(null)
   const [editBody, setEditBody] = useState('')
 
+  // コメント一覧は欄を開いたときと追加・削除後に取得する。
   async function load() {
     setLoading(true)
     try { const result = await api(`comments&post_id=${postId}`); setComments(result.comments) }
     finally { setLoading(false) }
   }
+  // 再度開くときも読み直し、他のユーザーが追加したコメントを反映する。
   async function toggle() {
     if (expanded) { setExpanded(false); return }
     setExpanded(true); setError('')
     try { await load() } catch (e) { setError((e as Error).message) }
   }
+  // 空白のみの送信と連打を防ぐ。追加成功後は親のコメント件数も再取得する。
   async function submit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
     if (!body.trim() || busy) return
@@ -42,6 +47,7 @@ export default function Comments({ postId, count, userId, api, onLogin, onChange
     } catch (e) { setError((e as Error).message) }
     finally { setBusy(false) }
   }
+  // 保存が成功するまで編集内容を保持する。本文だけ更新するため件数は変わらない。
   async function saveEdit(e: FormEvent<HTMLFormElement>, id: number) {
     e.preventDefault()
     if (busy || !editBody.trim()) return
@@ -53,6 +59,7 @@ export default function Comments({ postId, count, userId, api, onLogin, onChange
     } catch (e) { setError((e as Error).message) }
     finally { setBusy(false) }
   }
+  // 削除前に確認を取り、一覧と親の件数を同期する。
   async function remove(id: number) {
     if (!confirm('このコメントを削除しますか？')) return
     setBusy(true); setError('')
@@ -60,6 +67,7 @@ export default function Comments({ postId, count, userId, api, onLogin, onChange
     catch (e) { setError((e as Error).message) }
     finally { setBusy(false) }
   }
+  // 編集・削除ボタンは本人だけに表示する。APIでも同じ権限チェックを必ず行う。
   return <section className="comments" aria-label="コメント">
     <button className="comment-toggle plain" aria-expanded={expanded} aria-controls={`comments-${postId}`} onClick={toggle}>
       コメント {count}件 <span aria-hidden="true">{expanded ? '▴' : '▾'}</span>

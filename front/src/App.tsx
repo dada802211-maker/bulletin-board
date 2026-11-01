@@ -1,21 +1,34 @@
 import Comments from './Comments'
 import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
+// APIが返す公開ユーザー情報と投稿データの型。
 type User={id:number;name:string}
 type Post={comment_count:number;id:number;user_id:number;name:string;title:string;body:string;category:string;created_at:string}
 const categories=['すべて','雑談','質問','お知らせ']
 export default function App(){
+ // 認証・一覧の絞り込み・ダイアログ・通信状態を管理する。
  const [user,setUser]=useState<User|null>(null),[csrf,setCsrf]=useState(''),[posts,setPosts]=useState<Post[]>([]),[category,setCategory]=useState('すべて'),[search,setSearch]=useState(''),[modal,setModal]=useState<'login'|'register'|'post'|null>(null),[error,setError]=useState(''),[busy,setBusy]=useState(false),[loading,setLoading]=useState(true),[mine,setMine]=useState(false)
+ // nullなら新規投稿、投稿データがあれば同じフォームを編集用として使う。
  const [editing,setEditing]=useState<Post|null>(null)
+ // 相対URLで設置先に追従する。更新時はCSRFトークンを送り、HTTPエラーを例外にする。
  async function api(action:string,data?:object){const r=await fetch(`php/index.php?action=${action}`,{method:data?'POST':'GET',headers:data?{'Content-Type':'application/json','X-CSRF-Token':csrf}:{},body:data?JSON.stringify(data):undefined});const json=await r.json();if(!r.ok)throw new Error(json.error||'通信に失敗しました。');return json}
+ // 投稿変更後に件数・カテゴリなども含めてサーバーの最新状態を取得する。
  async function refresh(){const data=await api('posts');setPosts(data.posts)}
+ // 初回表示ではセッションと投稿一覧を並行取得する。
  useEffect(()=>{Promise.all([api('session'),api('posts')]).then(([s,p])=>{setUser(s.user);setCsrf(s.csrf);setPosts(p.posts)}).catch(e=>setError(e.message)).finally(()=>setLoading(false))},[])
+ // Escapeで閉じられるようにし、ダイアログ終了時にはイベントを解除する。
  useEffect(()=>{if(!modal)return;const listener=(e:KeyboardEvent)=>{if(e.key==='Escape'&&!busy)setModal(null)};document.addEventListener('keydown',listener);return()=>document.removeEventListener('keydown',listener)},[modal,busy])
+ // 新しく画面を開く際は前回のエラーと編集対象をリセットする。
  function open(mode:'login'|'register'|'post'){setError('');setEditing(null);setModal(mode)}
+ // 認証・新規投稿・投稿編集の送信先を切り替える。失敗時はフォームを保持する。
  async function submit(e:FormEvent<HTMLFormElement>){e.preventDefault();setBusy(true);setError('');const data=Object.fromEntries(new FormData(e.currentTarget));try{const r=await api(modal==='post'?(editing?'update':'create'):modal!,editing&&modal==='post'?{...data,id:editing.id}:data);if(modal!=='post')setUser(r.user);await refresh();setModal(null);setEditing(null)}catch(e){setError((e as Error).message)}finally{setBusy(false)}}
+ // ログアウト後はサーバーが発行した新しいCSRFトークンに差し替える。
  async function logout(){setBusy(true);try{const r=await api('logout',{});setUser(null);setCsrf(r.csrf);setMine(false)}catch(e){setError((e as Error).message)}finally{setBusy(false)}}
+ // 確認後に削除し、成功したら一覧を更新する。最終的な権限チェックはPHP側で行う。
  async function remove(id:number){if(!confirm('この投稿を削除しますか？'))return;setBusy(true);try{await api('delete',{id});await refresh()}catch(e){setError((e as Error).message)}finally{setBusy(false)}}
+ // 取得済みの投稿をカテゴリ・本人・キーワードの条件で絞り込む。
  const shown=posts.filter(p=>(category==='すべて'||p.category===category)&&(!mine||p.user_id===user?.id)&&`${p.title} ${p.body} ${p.name}`.toLowerCase().includes(search.toLowerCase()))
+ // 投稿や表示名はReactのテキストとして描画し、入力されたHTMLを実行させない。
  return <><header><a className="brand" href="./"><span className="brand-icon">ひ</span>ひろば<span className="brand-sub">COMMUNITY BOARD</span></a><nav>{user?<><span className="username">{user.name} さん</span><button className="plain" disabled={busy} onClick={logout}>ログアウト</button></>:<><button className="plain" onClick={()=>open('login')}>ログイン</button><button onClick={()=>open('register')}>新規登録 <span>↗</span></button></>}</nav></header>
  <main><section className="hero"><div><span className="eyebrow">A PLACE TO CONNECT</span><h1>話すことから、<br/>つながりが生まれる。</h1><p>日々の発見も、ちょっとした疑問も。<br/>あなたの言葉を、みんなのひろばへ。</p><button onClick={()=>open(user?'post':'login')}>＋ 投稿する</button></div><div className="art" aria-hidden="true"><div className="orbit"/><div className="bubble first">こんにちは。<span>小さなひとことから、はじめよう。</span></div><div className="bubble second">いいですね！ <i>✳</i></div><span className="spark">✳</span><span className="art-caption">いろんな声が、集まる場所。</span></div></section>
  <div className="layout"><aside><span className="section-label">カテゴリー</span>{categories.map((c,i)=><button key={c} className={`category ${category===c&&!mine?'active':''}`} onClick={()=>{setCategory(c);setMine(false)}}><span>{['▦','☏','？','⚑'][i]}　{c}</span><small>{c==='すべて'?posts.length:posts.filter(p=>p.category===c).length}</small></button>)}{user&&<button className={`category ${mine?'active':''}`} onClick={()=>setMine(!mine)}>☆　自分の投稿</button>}<div className="guide"><span>ひろばのお約束</span><p>相手を思いやる言葉で。<br/>お互いの違いを大切に、<br/>心地よい場所をつくりましょう。</p></div></aside>
